@@ -30,6 +30,20 @@ import '@umd/accordion';
 </umd-accordion>
 ```
 
+## CSS Styling. Default styling is in place. The shadow DOM styles can't be overwrite but you can globally umd-accordion.
+
+```css
+umd-accordion:not(:defined) {
+  display: none;
+}
+
+umd-accordion:defined {
+  display: block;
+  max-width: 50%;
+  margin: 50px auto;
+}
+```
+
 ## License
 
 Distributed under the MIT license. See LICENSE for details.

@@ -6,6 +6,9 @@ export default class AccordionElement extends HTMLElement {
     _shadow: ShadowRoot;
     constructor();
     eventClick(button: HTMLButtonElement): void;
+    eventResize({ elements }: {
+        elements: HTMLDivElement[];
+    }): void;
     setStateOpen({ button, element }: StateProps): void;
     setStateClose({ button, element }: StateProps): void;
 }

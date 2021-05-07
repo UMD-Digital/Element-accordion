@@ -1,28 +1,14 @@
-const Colors = {
-  white: 'ffffff',
-  offWhite: '#f1f1f1',
-  black: '#000000',
-  grayDark: '#454545',
-  gray: '#7f7f7f',
-  grayLight: '#e6e6e6',
-  red: '#e21833',
-  redDark: '#951022',
-  gold: 'ffd200',
-  yellow: '#f8d351',
-  yellowDark: '#c1a43d',
-  bronze: '#ad7231',
-  blue: '#4070ff',
-  mckeldin: '#80e653',
-  patina: '#2de6c6',
-  oriole: '#e68320',
-};
-
 type StateProps = {
   button: HTMLButtonElement;
   element: HTMLDivElement;
 };
 
 const template = document.createElement('template');
+const animationSpeed = 1000;
+const Colors = {
+  offWhite: '#f1f1f1',
+  grayLight: '#e6e6e6',
+};
 
 template.innerHTML = `
   <style>
@@ -59,7 +45,7 @@ template.innerHTML = `
       border-left: 5px solid transparent;
       border-right: 5px solid transparent;
       transform: rotate(0) translateY(0);
-      transition: transform 1s;
+      transition: transform ${animationSpeed}ms;
     }
     
     button[data-active='true'] {
@@ -82,7 +68,7 @@ template.innerHTML = `
       display: block;
       overflow: hidden;
       height: 0;
-      transition: height 0.5s;
+      transition: height ${animationSpeed / 2}ms;
     }
 
     div[aria-hidden]:not(:last-of-type) {
@@ -95,8 +81,31 @@ template.innerHTML = `
     }
   
   </style>
-    
 `;
+
+const makeHTML = ({ elements }: { elements: Element[] }) =>
+  elements.map((element) => {
+    if (element.hasAttribute('aria-hidden') && element.nodeName === 'DIV') {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('size');
+      wrapper.innerHTML = element.innerHTML;
+      element.innerHTML = '';
+      element.appendChild(wrapper);
+
+      return element;
+    }
+
+    return element;
+  });
+
+const debounce = function <T extends Function>(cb: T, wait = 50) {
+  let h = 0;
+  let callable = (...args: any) => {
+    clearTimeout(h);
+    h = setTimeout(() => cb(...args), wait);
+  };
+  return <T>(<any>callable);
+};
 
 export default class AccordionElement extends HTMLElement {
   _shadow: ShadowRoot;
@@ -104,13 +113,23 @@ export default class AccordionElement extends HTMLElement {
   constructor() {
     super();
 
+    const elements = Array.from(this.children);
+    const children = makeHTML({ elements });
     this._shadow = this.attachShadow({ mode: 'open' });
-    this._shadow.append(...this.children);
-    const buttons = Array.from(this._shadow.querySelectorAll('button'));
+    this._shadow.append(...children);
     this._shadow.appendChild(template.content.cloneNode(true));
+
+    const containers = Array.from(
+      this._shadow.querySelectorAll('div[aria-hidden]'),
+    ) as HTMLDivElement[];
+    const buttons = Array.from(this._shadow.querySelectorAll('button'));
 
     buttons.forEach((button) =>
       button.addEventListener('click', () => this.eventClick(button)),
+    );
+    window.addEventListener(
+      'resize',
+      debounce(() => this.eventResize({ elements: containers })),
     );
   }
 
@@ -122,7 +141,6 @@ export default class AccordionElement extends HTMLElement {
 
       if (element) {
         const isOpen = element.getAttribute('aria-hidden') === 'false';
-        console.log('ad');
         isOpen
           ? this.setStateClose({ button, element })
           : this.setStateOpen({ button, element });
@@ -130,16 +148,44 @@ export default class AccordionElement extends HTMLElement {
     }
   }
 
-  setStateOpen({ button, element }: StateProps) {
-    const elements = Array.from(element.querySelectorAll('*'));
+  eventResize({ elements }: { elements: HTMLDivElement[] }) {
+    elements.forEach((element) => {
+      if (element.getAttribute('aria-hidden') === 'false') {
+        const child = element.querySelector('.size') as HTMLElement;
 
-    button.setAttribute('data-active', 'true');
-    element.setAttribute('aria-hidden', 'false');
+        if (child) {
+          element.style.height = `${child.offsetHeight}px`;
+          element.style.transition = `none`;
+        }
+      }
+    });
+  }
+
+  setStateOpen({ button, element }: StateProps) {
+    const sizeElement = element.querySelector('.size') as HTMLDivElement;
+
+    if (sizeElement) {
+      sizeElement.style.display = 'block';
+
+      setTimeout(() => {
+        element.style.height = `${sizeElement.offsetHeight}px`;
+        button.setAttribute('data-active', 'true');
+        element.setAttribute('aria-hidden', 'false');
+      }, 100);
+    }
   }
 
   setStateClose({ button, element }: StateProps) {
-    button.setAttribute('data-active', 'true');
-    element.setAttribute('aria-hidden', 'false');
+    const sizeElement = element.querySelector('.size') as HTMLDivElement;
+    button.setAttribute('data-active', 'false');
+    element.setAttribute('aria-hidden', 'true');
+    element.style.height = `0`;
+
+    if (sizeElement) {
+      setTimeout(() => {
+        sizeElement.style.display = 'none';
+      }, animationSpeed);
+    }
   }
 }
 
