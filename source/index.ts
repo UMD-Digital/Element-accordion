@@ -1,6 +1,7 @@
 type StateProps = {
   button: HTMLButtonElement;
   element: HTMLDivElement;
+  includeAnimation?: boolean;
 };
 
 const template = document.createElement('template');
@@ -46,34 +47,34 @@ template.innerHTML = `
     }
     
     ::slotted(button[data-active]):after {
-      content: '' !important;
-      position: absolute !important;
-      top: 50% !important;
-      right: 20px !important;
-      margin-top: -3px !important;
-      border-top: 7px solid black !important;
-      border-left: 5px solid transparent !important;
-      border-right: 5px solid transparent !important;
-      transition: transform ${openingAnimationSpeed}ms !important;
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      margin-top: -3px;
+      border-top: 7px solid black;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      transition: transform ${openingAnimationSpeed}ms;
     }
     
     ::slotted(button[data-active='true']) {
-      border-bottom: none !important;
+      border-bottom: none;
     }
 
     ::slotted(button[data-active='false']):after {
-      transform: rotate(0) translateY(0) !important;
+      transform: rotate(0) translateY(0);
     }
     
     ::slotted(button[data-active='true']):after {
-      transform: rotate(180deg) translateY(-2px) !important;
+      transform: rotate(180deg) translateY(-2px);
     }
     
     ::slotted(div[aria-hidden]) {
       display: block !important;
       overflow: hidden !important;
       height: 0;
-      transition: height ${closingAnimationSpeed}ms !important;
+      transition: height ${closingAnimationSpeed}ms;
     }
 
     ::slotted(div[aria-hidden]:not(:last-of-type)) {
@@ -83,6 +84,26 @@ template.innerHTML = `
   </style>
   <slot></slot>
 `;
+
+const isOpen = ({ element }: { element: HTMLElement }) =>
+  element.getAttribute('aria-hidden') === 'false';
+
+const disableButton = ({
+  button,
+  isOpening,
+}: {
+  button: HTMLButtonElement;
+  isOpening: boolean;
+}) => {
+  const animationSpeed = isOpening
+    ? closingAnimationSpeed
+    : openingAnimationSpeed;
+  button.setAttribute('disabled', 'true');
+
+  setTimeout(() => {
+    button.removeAttribute('disabled');
+  }, animationSpeed);
+};
 
 const makeContainerMarkup = ({ element }: { element: Element }) => {
   if (element.hasAttribute('aria-hidden') && element.nodeName === 'DIV') {
@@ -109,6 +130,16 @@ const makeButtonMarkup = ({ button }: { button: HTMLButtonElement }) => {
   button.appendChild(span);
 };
 
+const removeAnimation = ({ element, button }: StateProps) => {
+  button.style.transition = 'none';
+  element.style.transition = 'none';
+
+  setTimeout(() => {
+    button.style.removeProperty('transition');
+    element.style.removeProperty('transition');
+  }, openingAnimationSpeed);
+};
+
 const debounce = function <T extends Function>(cb: T, wait = 50) {
   let h = 0;
   let callable = (...args: any) => {
@@ -132,7 +163,24 @@ export default class AccordionElement extends HTMLElement {
     ) as HTMLDivElement[];
     const buttons = Array.from(this._shadow.host.querySelectorAll('button'));
 
-    containers.forEach((element) => makeContainerMarkup({ element }));
+    containers.forEach((element) => {
+      makeContainerMarkup({ element });
+
+      if (element.getAttribute('aria-hidden') === 'false') {
+        const elementButton = buttons.find(
+          (button) =>
+            button.getAttribute('id') === element.getAttribute('aria-controls'),
+        );
+
+        console.log(elementButton);
+        if (elementButton)
+          this.setStateOpen({
+            element,
+            button: elementButton,
+            includeAnimation: false,
+          });
+      }
+    });
 
     buttons.forEach((button) => {
       makeButtonMarkup({ button });
@@ -152,20 +200,13 @@ export default class AccordionElement extends HTMLElement {
       const element = this._shadow.host.querySelector(
         `#${id}`,
       ) as HTMLDivElement;
+      const isOpening = isOpen({ element });
 
       if (element) {
-        const isOpen = element.getAttribute('aria-hidden') === 'false';
-        const animationTime = isOpen
-          ? closingAnimationSpeed
-          : openingAnimationSpeed;
-        button.setAttribute('disabled', 'true');
-        isOpen
+        disableButton({ button, isOpening });
+        isOpening
           ? this.setStateClose({ button, element })
           : this.setStateOpen({ button, element });
-
-        setTimeout(() => {
-          button.removeAttribute('disabled');
-        }, animationTime);
       }
     }
   }
@@ -183,11 +224,13 @@ export default class AccordionElement extends HTMLElement {
     });
   }
 
-  setStateOpen({ button, element }: StateProps) {
+  setStateOpen({ button, element, includeAnimation = true }: StateProps) {
     const sizeElement = element.querySelector('.size') as HTMLDivElement;
 
     if (sizeElement) {
       sizeElement.style.display = 'block';
+
+      if (!includeAnimation) removeAnimation({ element, button });
 
       setTimeout(() => {
         element.style.height = `${sizeElement.offsetHeight}px`;
