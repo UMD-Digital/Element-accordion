@@ -20,63 +20,64 @@ template.innerHTML = `
     }
 
     ::slotted(button) {
-      border: none;
+      border: none !important;
       padding: 18px 15px !important;
-      background-color: ${Colors.offWhite};
-      display: block;
-      width: 100%;
-      text-align: left;
-      line-height: 1em;
-      font-weight: 600;
-      position: relative;
-      padding-right: 30px;
-      border-bottom: 1px solid ${Colors.grayLight};
-      cursor: pointer;
-      color:  ${Colors.grayDark}
+      background-color: ${Colors.offWhite} !important;
+      display: block !important;
+      width: 100% !important;
+      text-align: left !important;
+      line-height: 1em !important;
+      font-weight: 600 !important;
+      position: relative !important;
+      padding-right: 30px !important;
+      border-bottom: 1px solid ${Colors.grayLight} !important;
+      cursor: pointer !important;
+      color:  ${Colors.grayDark} !important;
     }
 
-    ::slotted(button):disabled {
-      cursor: inherit;
+    ::slotted(button:disabled) {
+      cursor: inherit !important;
       opacity: .8;
+      border-bottom: none !important;
     }
   
     ::slotted(button):last-of-type {
-      border-bottom: 0;
+      border-bottom: 0 !important;
     }
     
     ::slotted(button[data-active]):after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      right: 20px;
-      margin-top: -3px;
-      border-top: 7px solid black;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      transition: transform ${openingAnimationSpeed}ms;
+      content: '' !important;
+      position: absolute !important;
+      top: 50% !important;
+      right: 20px !important;
+      margin-top: -3px !important;
+      border-top: 7px solid black !important;
+      border-left: 5px solid transparent !important;
+      border-right: 5px solid transparent !important;
+      transition: transform ${openingAnimationSpeed}ms !important;
     }
     
     ::slotted(button[data-active='true']) {
-      border-bottom: none;
+      border-bottom: none !important;
     }
 
     ::slotted(button[data-active='false']):after {
-      transform: rotate(0) translateY(0);
+      transform: rotate(0) translateY(0) !important;
     }
     
     ::slotted(button[data-active='true']):after {
-      transform: rotate(180deg) translateY(-2px);
+      transform: rotate(180deg) translateY(-2px) !important;
     }
     
     ::slotted(div[aria-hidden]) {
-      display: block;
-      overflow: hidden;
+      display: block !important;
+      overflow: hidden !important;
       height: 0;
-      transition: height ${closingAnimationSpeed}ms;
+      transition: height ${closingAnimationSpeed}ms !important;
     }
 
     ::slotted(div[aria-hidden]:not(:last-of-type)) {
-      border-bottom: 1px solid ${Colors.grayLight};
+      border-bottom: 1px solid ${Colors.grayLight} !important;
     }
     
   </style>
