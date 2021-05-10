@@ -1,8 +1,10 @@
 const template = document.createElement('template');
-const animationSpeed = 1000;
+const openingAnimationSpeed = 1000;
+const closingAnimationSpeed = openingAnimationSpeed / 2;
 const Colors = {
     offWhite: '#f1f1f1',
     grayLight: '#e6e6e6',
+    grayDark: '#454545',
 };
 template.innerHTML = `
   <style>
@@ -10,10 +12,10 @@ template.innerHTML = `
     umd-accordion {
       display: block;
     }
-    
-    button {
+
+    ::slotted(button) {
       border: none;
-      padding: 18px 15px;
+      padding: 18px 15px !important;
       background-color: ${Colors.offWhite};
       display: block;
       width: 100%;
@@ -23,13 +25,20 @@ template.innerHTML = `
       position: relative;
       padding-right: 30px;
       border-bottom: 1px solid ${Colors.grayLight};
+      cursor: pointer;
+      color:  ${Colors.grayDark}
+    }
+
+    ::slotted(button):disabled {
+      cursor: inherit;
+      opacity: .8;
     }
   
-    button:last-of-type {
+    ::slotted(button):last-of-type {
       border-bottom: 0;
     }
     
-    button:after {
+    ::slotted(button[data-active]):after {
       content: '';
       position: absolute;
       top: 50%;
@@ -38,55 +47,57 @@ template.innerHTML = `
       border-top: 7px solid black;
       border-left: 5px solid transparent;
       border-right: 5px solid transparent;
-      transform: rotate(0) translateY(0);
-      transition: transform ${animationSpeed}ms;
+      transition: transform ${openingAnimationSpeed}ms;
     }
     
-    button[data-active='true'] {
+    ::slotted(button[data-active='true']) {
       border-bottom: none;
     }
+
+    ::slotted(button[data-active='false']):after {
+      transform: rotate(0) translateY(0);
+    }
     
-    button[data-active='true']:after {
+    ::slotted(button[data-active='true']):after {
       transform: rotate(180deg) translateY(-2px);
     }
     
-    button span {
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      width: calc(100% - 40px);
-      display: block;
-      overflow: hidden;
-    }
-    
-    div[aria-hidden] {
+    ::slotted(div[aria-hidden]) {
       display: block;
       overflow: hidden;
       height: 0;
-      transition: height ${animationSpeed / 2}ms;
+      transition: height ${closingAnimationSpeed}ms;
     }
 
-    div[aria-hidden]:not(:last-of-type) {
+    ::slotted(div[aria-hidden]:not(:last-of-type)) {
       border-bottom: 1px solid ${Colors.grayLight};
     }
     
-    div[aria-hidden] > div {
-      padding: 20px 10px;
-      display: none;
-    }
-  
   </style>
+  <slot></slot>
 `;
-const makeHTML = ({ elements }) => elements.map((element) => {
+const makeContainerMarkup = ({ element }) => {
     if (element.hasAttribute('aria-hidden') && element.nodeName === 'DIV') {
         const wrapper = document.createElement('div');
         wrapper.classList.add('size');
+        wrapper.style.display = 'none';
+        wrapper.style.padding = '20px 10px';
         wrapper.innerHTML = element.innerHTML;
         element.innerHTML = '';
         element.appendChild(wrapper);
-        return element;
     }
-    return element;
-});
+};
+const makeButtonMarkup = ({ button }) => {
+    const span = document.createElement('span');
+    span.style.whiteSpace = 'nowrap';
+    span.style.textOverflow = 'ellipsis';
+    span.style.width = 'calc(100% - 40px)';
+    span.style.display = 'block';
+    span.style.overflow = 'hidden';
+    span.innerHTML = button.innerHTML;
+    button.innerHTML = '';
+    button.appendChild(span);
+};
 const debounce = function (cb, wait = 50) {
     let h = 0;
     let callable = (...args) => {
@@ -98,25 +109,33 @@ const debounce = function (cb, wait = 50) {
 export default class AccordionElement extends HTMLElement {
     constructor() {
         super();
-        const elements = Array.from(this.children);
-        const children = makeHTML({ elements });
         this._shadow = this.attachShadow({ mode: 'open' });
-        this._shadow.append(...children);
         this._shadow.appendChild(template.content.cloneNode(true));
-        const containers = Array.from(this._shadow.querySelectorAll('div[aria-hidden]'));
-        const buttons = Array.from(this._shadow.querySelectorAll('button'));
-        buttons.forEach((button) => button.addEventListener('click', () => this.eventClick(button)));
+        const containers = Array.from(this._shadow.host.querySelectorAll('div[aria-hidden]'));
+        const buttons = Array.from(this._shadow.host.querySelectorAll('button'));
+        containers.forEach((element) => makeContainerMarkup({ element }));
+        buttons.forEach((button) => {
+            makeButtonMarkup({ button });
+            button.addEventListener('click', () => this.eventClick(button));
+        });
         window.addEventListener('resize', debounce(() => this.eventResize({ elements: containers })));
     }
     eventClick(button) {
         const id = button.getAttribute('aria-controls');
         if (id) {
-            const element = this._shadow.querySelector(`#${id}`);
+            const element = this._shadow.host.querySelector(`#${id}`);
             if (element) {
                 const isOpen = element.getAttribute('aria-hidden') === 'false';
+                const animationTime = isOpen
+                    ? closingAnimationSpeed
+                    : openingAnimationSpeed;
+                button.setAttribute('disabled', 'true');
                 isOpen
                     ? this.setStateClose({ button, element })
                     : this.setStateOpen({ button, element });
+                setTimeout(() => {
+                    button.removeAttribute('disabled');
+                }, animationTime);
             }
         }
     }
@@ -150,7 +169,7 @@ export default class AccordionElement extends HTMLElement {
         if (sizeElement) {
             setTimeout(() => {
                 sizeElement.style.display = 'none';
-            }, animationSpeed);
+            }, closingAnimationSpeed);
         }
     }
 }
