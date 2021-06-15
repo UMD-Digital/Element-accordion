@@ -3,6 +3,7 @@ const THEME_ATTR = 'theme';
 const ARIA_HIDDEN_ATTR = 'aria-hidden';
 const ARIA_CONTROLS_ATTR = 'aria-controls';
 const SIZE_CLASS = '.size';
+const CHEVRON_CLASS = '.chevron';
 const template = document.createElement('template');
 const openingAnimationSpeed = 1000;
 const closingAnimationSpeed = openingAnimationSpeed / 2;
@@ -44,28 +45,8 @@ template.innerHTML = `
       border-bottom: 0 !important;
     }
     
-    ::slotted(button[${ACTIVE_ATTR}]):after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      right: 20px;
-      margin-top: -3px;
-      border-top: 7px solid black;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      transition: transform ${openingAnimationSpeed}ms;
-    }
-    
     ::slotted(button[${ACTIVE_ATTR}='true']) {
       border-bottom: none;
-    }
-
-    ::slotted(button[${ACTIVE_ATTR}='false']):after {
-      transform: rotate(0) translateY(0);
-    }
-    
-    ::slotted(button[${ACTIVE_ATTR}='true']):after {
-      transform: rotate(180deg) translateY(-2px);
     }
     
     ::slotted(div[${ARIA_HIDDEN_ATTR}]) {
@@ -105,14 +86,27 @@ const makeContainerMarkup = ({ element }) => {
 };
 const makeButtonMarkup = ({ button }) => {
     const span = document.createElement('span');
+    const chevron = document.createElement('span');
     span.style.whiteSpace = 'nowrap';
     span.style.textOverflow = 'ellipsis';
     span.style.width = 'calc(100% - 40px)';
     span.style.display = 'block';
     span.style.overflow = 'hidden';
+    span.style.lineHeight = '1.1em';
+    chevron.classList.add(CHEVRON_CLASS.substr(1, CHEVRON_CLASS.length - 1));
+    chevron.style.position = 'absolute';
+    chevron.style.top = '50%';
+    chevron.style.right = '20px';
+    chevron.style.marginTop = '-3px';
+    chevron.style.borderTop = '7px solid black';
+    chevron.style.borderLeft = '5px solid transparent';
+    chevron.style.borderRight = '5px solid transparent';
+    chevron.style.transform = `rotate(0) translateY(0)`;
+    chevron.style.transition = `transform ${openingAnimationSpeed}ms`;
     span.innerHTML = button.innerHTML;
     button.innerHTML = '';
     button.appendChild(span);
+    button.appendChild(chevron);
 };
 const removeAnimation = ({ element, button }) => {
     button.style.transition = 'none';
@@ -133,13 +127,12 @@ const debounce = function (cb, wait = 50) {
 export default class AccordionElement extends HTMLElement {
     constructor() {
         super();
-        console.log(this.getAttribute('theme'));
         this._shadow = this.attachShadow({ mode: 'open' });
         this._shadow.appendChild(template.content.cloneNode(true));
         const containers = Array.from(this._shadow.host.querySelectorAll(`div[${ARIA_HIDDEN_ATTR}]`));
         const buttons = Array.from(this._shadow.host.querySelectorAll('button'));
-        containers.forEach((element) => {
-            makeContainerMarkup({ element });
+        containers.forEach(async (element) => {
+            await makeContainerMarkup({ element });
             if (element.getAttribute(ARIA_HIDDEN_ATTR) === 'false') {
                 const elementButton = buttons.find((button) => button.getAttribute('id') ===
                     element.getAttribute(ARIA_CONTROLS_ATTR));
@@ -183,10 +176,19 @@ export default class AccordionElement extends HTMLElement {
     }
     setStateOpen({ button, element, includeAnimation = true }) {
         const sizeElement = element.querySelector(SIZE_CLASS);
+        const chevron = button.querySelector(CHEVRON_CLASS);
         if (sizeElement) {
             sizeElement.style.display = 'block';
             if (!includeAnimation)
                 removeAnimation({ element, button });
+            if (chevron)
+                chevron.style.transform = `rotate(180deg) translateY(-2px) `;
+            if (!includeAnimation && chevron) {
+                chevron.style.transition = `none`;
+                setTimeout(() => {
+                    chevron.style.transition = `transform ${openingAnimationSpeed}ms`;
+                }, openingAnimationSpeed);
+            }
             setTimeout(() => {
                 element.style.height = `${sizeElement.offsetHeight}px`;
                 button.setAttribute(ACTIVE_ATTR, 'true');
@@ -196,9 +198,12 @@ export default class AccordionElement extends HTMLElement {
     }
     setStateClose({ button, element }) {
         const sizeElement = element.querySelector(SIZE_CLASS);
+        const chevron = button.querySelector(CHEVRON_CLASS);
         button.setAttribute(ACTIVE_ATTR, 'false');
         element.setAttribute(ARIA_HIDDEN_ATTR, 'true');
         element.style.height = `0`;
+        if (chevron)
+            chevron.style.transform = `rotate(0) translateY(0)`;
         if (sizeElement) {
             setTimeout(() => {
                 sizeElement.style.display = 'none';
