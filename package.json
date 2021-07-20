@@ -1,6 +1,6 @@
 {
-  "name": "@umd/accordion",
-  "version": "0.0.6",
+  "name": "@universityofmaryland/accordion",
+  "version": "0.0.1",
   "description": "Accordion element",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -17,9 +17,7 @@
     "start": "tsc -w -outDir examples"
   },
   "devDependencies": {
-    "@umd/variables": "git+ssh://git@github.com:UMD-Digital/elements-variables.git",
     "eslint": "^7.9.0",
-    "eslint-plugin-github": "^4.1.1",
     "typescript": "^4.0.3"
   },
   "eslintIgnore": [

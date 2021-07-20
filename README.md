@@ -3,13 +3,13 @@
 ## Installation
 
 ```
-$ yarn add @umd/accordion
+$ yarn add @universityofmaryland/accordion
 ```
 
 ## Usage
 
 ```js
-import '@umd/accordion';
+import '@universityofmaryland/accordion';
 ```
 
 ```html
