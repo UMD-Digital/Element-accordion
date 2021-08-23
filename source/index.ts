@@ -248,6 +248,7 @@ export default class AccordionElement extends HTMLElement {
         element.style.height = `${sizeElement.offsetHeight}px`;
         button.setAttribute(ACTIVE_ATTR, 'true');
         element.setAttribute(ARIA_HIDDEN_ATTR, 'false');
+        element.setAttribute('aria-expanded', 'true');
       }, 100);
     }
   }
@@ -257,6 +258,7 @@ export default class AccordionElement extends HTMLElement {
     const chevron = button.querySelector(CHEVRON_CLASS) as HTMLDivElement;
     button.setAttribute(ACTIVE_ATTR, 'false');
     element.setAttribute(ARIA_HIDDEN_ATTR, 'true');
+    element.setAttribute('aria-expanded', 'false');
     element.style.height = `0`;
 
     if (chevron) chevron.style.transform = `rotate(0) translateY(0)`;
